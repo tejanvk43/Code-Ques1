@@ -1,3 +1,6 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ProfessionalNavbar from '../components/ProfessionalNavbar';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminLogin: React.FC = () => {
