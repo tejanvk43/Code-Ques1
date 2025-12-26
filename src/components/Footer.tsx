@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300 mb-4">
-              Code & Quest Carnival 2025  
+              Code & Quest Feria 2025  
             </h2>
             <p className="text-slate-400 leading-relaxed max-w-sm">
               The premier national-level technical symposium of Usha Rama College of Engineering and Technology. 
@@ -40,11 +40,11 @@ const Footer: React.FC = () => {
               </li>
               <li className="flex items-center gap-3">
                 <span>📧</span>
-                <span>codequestcarnival@usharama.edu.in</span>
+                <span>23ng1a0543@usharama.edu.in</span>
               </li>
               <li className="flex items-center gap-3">
                 <span>📞</span>
-                <span>+91 98765 43210</span>
+                <span>+91 81257 27137</span>
               </li>
             </ul>
           </div>

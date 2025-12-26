@@ -16,7 +16,7 @@ const EventPage: React.FC = () => {
             <h1 className="text-5xl font-bold text-slate-900 mb-4">Explore Our Events</h1>
             <div className="w-24 h-1.5 bg-blue-600 mx-auto rounded-full mb-6"></div>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              From coding battles to strategic quizzes, Code & Quest Carnival 2025 has a challenge for every tech enthusiast.
+              From coding battles to strategic quizzes, Code & Quest Feria 2025 has a challenge for every tech enthusiast.
             </p>
           </div>
         </RevealOnScroll>

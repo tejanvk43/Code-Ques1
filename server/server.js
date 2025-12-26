@@ -33,14 +33,14 @@ app.post('/api/send-approval-email', async (req, res) => {
     }
 
     const mailOptions = {
-        from: `"Code & Quest Carnival" <${process.env.EMAIL_USER}>`,
+        from: `"Code & Quest Feria" <${process.env.EMAIL_USER}>`,
         to: email,
         subject: 'Registration Approved - Login Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
                 <h2 style="color: #1e3a8a; text-align: center;">Registration Approved! 🎉</h2>
                 <p>Dear <strong>${name}</strong>,</p>
-                <p>Congratulations! Your registration for the <strong>Code & Quest Carnival 2025</strong> has been verified and approved.</p>
+                <p>Congratulations! Your registration for the <strong>Code & Quest Feria 2025</strong> has been verified and approved.</p>
                 <p>You can now log in to the candidate portal using the credentials below:</p>
                 
                 <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">

@@ -86,7 +86,7 @@ const Registration: React.FC = () => {
             
             <div className="bg-blue-900 p-8 text-center">
               <h1 className="text-3xl font-bold text-white mb-2">Event Registration</h1>
-              <p className="text-blue-200 text-sm tracking-wide uppercase mb-4">Code & Quest Carnival 2025</p>
+              <p className="text-blue-200 text-sm tracking-wide uppercase mb-4">Code & Quest Feria 2025</p>
               <div className="inline-block px-4 py-1 bg-white/10 rounded-full text-white font-bold text-sm border border-white/20">
                 Registration Fee: ₹30
               </div>

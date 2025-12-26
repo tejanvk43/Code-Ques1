@@ -20,7 +20,7 @@ const AboutEvent: React.FC = () => {
                  EST. 2008 • USHA RAMA COLLEGE
                </div>
                <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight">
-                 About The <span className="text-blue-700">Carnival 2025</span>
+                 About The <span className="text-blue-700">Feria 2025</span>
                </h1>
                <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
                  Where innovation meets competition. A celebration of technical excellence, creativity, and the coding spirit.
@@ -39,7 +39,7 @@ const AboutEvent: React.FC = () => {
                  <div className="absolute -left-4 -top-4 w-20 h-20 bg-blue-100 rounded-full opacity-50 z-0" />
                  <h2 className="text-3xl font-bold text-slate-900 mb-6 relative z-10">Igniting Innovation</h2>
                  <p className="text-lg text-slate-600 leading-relaxed mb-6">
-                   <strong className="text-slate-900">Code & Quest Carnival</strong> is a department-level technical fest for the sharpest minds. 
+                   <strong className="text-slate-900">Code & Quest Feria</strong> is a department-level technical fest for the sharpest minds. 
                    Hosted by the Department of Information Technology at Usha Rama College, this event brings together students 
                    to compete in high-stakes coding challenges, strategic quizzes, and mock interview rounds.
                  </p>

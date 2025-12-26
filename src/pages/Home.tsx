@@ -38,8 +38,8 @@ const Home: React.FC = () => {
                <div className="relative w-full max-w-7xl mx-auto mb-6 transform hover:scale-[1.01] transition-transform duration-500">
                   <div className="absolute inset-0 bg-blue-600/20 blur-2xl rounded-3xl -z-10"></div>
                   <img 
-                    src="/assets/hero_banner.png" 
-                    alt="Code & Quest Carnival 2025 Banner" 
+                    src="/src/assets/hero_banner.png" 
+                    alt="Code & Quest Feria 2025 Banner" 
                     className="w-full h-auto rounded-2xl shadow-2xl border border-white/20"
                   />
                </div>
@@ -72,7 +72,7 @@ const Home: React.FC = () => {
                <div className="max-w-2xl">
                  <h2 className="text-4xl font-bold text-slate-900 mb-4">Why Participate?</h2>
                  <p className="text-slate-500 text-lg">
-                   More than just a competition. Code & Quest Carnival offers a platform to launch your career and test your limits.
+                   More than just a competition. Code & Quest Feria offers a platform to launch your career and test your limits.
                  </p>
                </div>
                <button onClick={() => navigate('/events')} className="hidden md:block text-blue-600 font-bold hover:text-blue-800 cursor-pointer">

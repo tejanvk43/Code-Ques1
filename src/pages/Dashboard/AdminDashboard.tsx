@@ -373,7 +373,7 @@ const AdminDashboard: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
             <div>
                 <h1 className="text-3xl font-black text-slate-900">Admin Dashboard</h1>
-                <p className="text-slate-500 font-medium text-sm mt-1">Manage Code & Quest Carnival Registrations</p>
+                <p className="text-slate-500 font-medium text-sm mt-1">Manage Code & Quest Feria Registrations</p>
             </div>
             <div className="flex gap-3">
                <button onClick={downloadAllCSV} className="px-5 py-2.5 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-lg flex items-center gap-2 transition-all cursor-pointer">
