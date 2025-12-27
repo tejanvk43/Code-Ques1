@@ -28,7 +28,8 @@ const CoordinatorDashboard: React.FC = () => {
         if (!email || !name) return;
 
         // Use Netlify Function endpoint
-        const emailEndpoint = '/.netlify/functions/send-email';
+        // Use Local Backend endpoint
+        const emailEndpoint = `${import.meta.env.VITE_API_URL}/api/send-approval-email`;
 
         fetch(emailEndpoint, {
             method: 'POST',

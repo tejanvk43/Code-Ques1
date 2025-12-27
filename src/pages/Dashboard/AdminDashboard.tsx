@@ -97,8 +97,8 @@ const AdminDashboard: React.FC = () => {
     const sendApprovalEmail = (email: string | undefined, name: string | undefined, rollNumber: string | undefined, password: string) => {
         if (!email || !name) return;
 
-        // Use Netlify Function endpoint
-        const emailEndpoint = '/.netlify/functions/send-email';
+        // Use Local Backend endpoint
+        const emailEndpoint = `${import.meta.env.VITE_API_URL}/api/send-approval-email`;
 
         fetch(emailEndpoint, {
             method: 'POST',
