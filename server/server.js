@@ -174,14 +174,17 @@ const processJob = async (job) => {
 
     // 2. AI Validation (Ollama)
     const prompt = `
-    You are an expert HR AI Resume Validator. Your task is to classify whether the provided text data belongs to a valid professional Resume/CV or not.
+    You are an expert HR AI Resume Validator. Your task is to evaluate the provided resume text.
     
     Rules:
-    1. A Resume/CV MUST contain: Contact Information (Email/Phone), Education History, and Skills or Experience.
-    2. Reject random text, code snippets, essays, generic articles, or unrelated documents.
-    3. If it is a Resume, output rigid JSON: { "valid": true, "confidence": 0.95, "reason": "Contains clear education and skills sections." }
-    4. If NOT a Resume, output rigid JSON: { "valid": false, "confidence": 0.9, "reason": "Text appears to be a random essay/article." }
-    5. Do NOT output markdown. Output ONLY JSON.
+    1. A Resume/CV MUST contain: Contact Information, Education, and Skills/Experience.
+    2. Reject random text, code snippets, or unrelated documents.
+    3. If it is a Resume, output rigid JSON: 
+       { "valid": true, "score": 8, "confidence": 0.95, "reason": "Good structure, but lacks specific impact metrics." }
+    4. "score" should be an integer from 0 to 10 based on quality, completeness, and professionalism.
+    5. If NOT a Resume, output rigid JSON: 
+       { "valid": false, "score": 0, "confidence": 0.9, "reason": "Text appears to be random." }
+    6. Do NOT output markdown. Output ONLY JSON.
 
     Input Text:
     """${text.substring(0, 3000)}"""
@@ -210,6 +213,7 @@ const processJob = async (job) => {
                 resumeStatus: 'Accepted',
                 resumeAIConfidence: result.confidence,
                 resumeAIReason: result.reason,
+                resumeScore: result.score || 0, // Save the score
                 processingCompletedAt: new Date().toISOString()
             });
         } else {
@@ -219,6 +223,7 @@ const processJob = async (job) => {
                 lastRejectionReason: result.reason,
                 resumeAIConfidence: result.confidence,
                 resumeAIReason: result.reason,
+                resumeScore: result.score || 0,
                 processingCompletedAt: new Date().toISOString()
             });
         }

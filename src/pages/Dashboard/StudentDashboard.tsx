@@ -17,6 +17,7 @@ const StudentDashboard: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(currentUser?.resumeUrl || null);
   const [resumeStatus, setResumeStatus] = useState<string | null>(currentUser?.resumeStatus || null);
+  const [resumeScore, setResumeScore] = useState<number | null>(null);
   const [uploadAttempts, setUploadAttempts] = useState(0);
 
   // Sync currentUser with Firebase on mount
@@ -29,6 +30,7 @@ const StudentDashboard: React.FC = () => {
                 if (data.resumeUrl) setResumeUrl(data.resumeUrl);
                 if (data.resumeAttempts) setUploadAttempts(data.resumeAttempts);
                 if (data.resumeStatus) setResumeStatus(data.resumeStatus);
+                if (data.resumeScore !== undefined) setResumeScore(data.resumeScore);
                 
                 // Handle async status updates
                 if (data.resumeStatus === 'Accepted') {
@@ -235,8 +237,17 @@ const StudentDashboard: React.FC = () => {
                           </div>
                       </div>
                       
-                      <div className="mt-8 p-4 bg-green-50 text-green-700 rounded-xl text-xs font-bold text-center border border-green-100">
-                          ✅ Resume Verified & Accepted
+                      <div className="mt-8 space-y-3">
+                           <div className="p-4 bg-green-50 text-green-700 rounded-xl text-xs font-bold text-center border border-green-100">
+                               ✅ Resume Verified & Accepted
+                           </div>
+                           
+                           {resumeScore !== null && resumeScore !== undefined && (
+                                <div className="p-4 bg-blue-50 text-blue-900 rounded-xl border border-blue-100 flex flex-col items-center">
+                                    <span className="text-xs uppercase font-bold tracking-wider text-blue-400 mb-1">Resume AI Score</span>
+                                    <div className="text-4xl font-black">{resumeScore}/10</div>
+                                </div>
+                           )}
                       </div>
                   </div>
               </div>
