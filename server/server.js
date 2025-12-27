@@ -69,6 +69,184 @@ app.post('/api/send-approval-email', async (req, res) => {
     }
 });
 
+
+import Bull from 'bull';
+
+// Job Queue (Redis)
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const validationQueue = new Bull('resume-validation', REDIS_URL);
+
+// Worker Function (Bull Consumer)
+validationQueue.process(async (job) => {
+    const { userId, resumeUrl } = job.data;
+    console.log(`Processing job for user: ${userId} (ID: ${job.id})`);
+
+    try {
+        await processJob(job.data);
+    } catch (error) {
+        console.error(`Job failed for ${userId}:`, error);
+        throw error; // Let Bull handle retries if configured
+    }
+});
+
+validationQueue.on('completed', (job) => {
+    console.log(`Job ${job.id} completed successfully.`);
+});
+
+validationQueue.on('failed', (job, err) => {
+    console.error(`Job ${job.id} failed:`, err);
+});
+
+// PDF Text Extraction Helper
+// PDF Text Extraction Helper
+const extractTextFromUrl = async (url) => {
+    // Use legacy build for Node.js compatibility (fixes DOMMatrix error)
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+
+    const loadingTask = pdfjsLib.getDocument({
+        data: new Uint8Array(arrayBuffer),
+        useSystemFonts: true
+    });
+
+    const pdf = await loadingTask.promise;
+    let fullText = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item) => item.str).join(' ');
+        fullText += pageText + ' ';
+    }
+    return fullText.trim();
+};
+
+const processJob = async (job) => {
+    const { userId, resumeUrl } = job;
+    const { initializeApp } = await import("firebase/app");
+    const { getFirestore, doc, updateDoc, increment } = await import("firebase/firestore");
+
+    // Firebase Config (Duplicates src/firebase.ts for Node)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDWiE3irAvXzDTGH77StY6_WxaXgCW8z3c",
+        authDomain: "interviews-e177f.firebaseapp.com",
+        projectId: "interviews-e177f",
+        storageBucket: "interviews-e177f.firebasestorage.app",
+        messagingSenderId: "528485388968",
+        appId: "1:528485388968:web:2f53e04ec3950db225e89d",
+        measurementId: "G-ZVR2Y99GLZ"
+    };
+
+    // Singleton-like init check
+    let db;
+    try {
+        const app = initializeApp(firebaseConfig, "workerApp");
+        db = getFirestore(app);
+    } catch (e) {
+        // App already exists
+        const app = (await import("firebase/app")).getApp("workerApp");
+        db = getFirestore(app);
+    }
+
+    // 1. Extract Text
+    let text = "";
+    try {
+        text = await extractTextFromUrl(resumeUrl);
+    } catch (err) {
+        console.error("Extraction error:", err);
+        await updateDoc(doc(db, 'registrations', userId), {
+            resumeStatus: 'Rejected',
+            resumeAIReason: `System Error: ${err.message}`
+        });
+        return;
+    }
+
+    if (!text || text.length < 50) {
+        await updateDoc(doc(db, 'registrations', userId), {
+            resumeStatus: 'Rejected',
+            resumeAttempts: increment(1),
+            lastRejectionReason: 'Resume appears empty or scanned.',
+            resumeAIReason: 'Insufficient text content.'
+        });
+        return;
+    }
+
+    // 2. AI Validation (Ollama)
+    const prompt = `
+    You are an expert HR AI Resume Validator. Your task is to classify whether the provided text data belongs to a valid professional Resume/CV or not.
+    
+    Rules:
+    1. A Resume/CV MUST contain: Contact Information (Email/Phone), Education History, and Skills or Experience.
+    2. Reject random text, code snippets, essays, generic articles, or unrelated documents.
+    3. If it is a Resume, output rigid JSON: { "valid": true, "confidence": 0.95, "reason": "Contains clear education and skills sections." }
+    4. If NOT a Resume, output rigid JSON: { "valid": false, "confidence": 0.9, "reason": "Text appears to be a random essay/article." }
+    5. Do NOT output markdown. Output ONLY JSON.
+
+    Input Text:
+    """${text.substring(0, 3000)}"""
+    `;
+
+    try {
+        const response = await fetch('http://localhost:8080/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'qwen2:7b',
+                prompt: prompt,
+                stream: false,
+                format: 'json'
+            }),
+        });
+
+        if (!response.ok) throw new Error("Ollama API Error");
+
+        const data = await response.json();
+        const result = JSON.parse(data.response);
+
+        // 3. Update Firestore
+        if (result.valid) {
+            await updateDoc(doc(db, 'registrations', userId), {
+                resumeStatus: 'Accepted',
+                resumeAIConfidence: result.confidence,
+                resumeAIReason: result.reason,
+                processingCompletedAt: new Date().toISOString()
+            });
+        } else {
+            await updateDoc(doc(db, 'registrations', userId), {
+                resumeStatus: 'Rejected',
+                resumeAttempts: increment(1),
+                lastRejectionReason: result.reason,
+                resumeAIConfidence: result.confidence,
+                resumeAIReason: result.reason,
+                processingCompletedAt: new Date().toISOString()
+            });
+        }
+
+    } catch (err) {
+        console.error("AI Error:", err);
+    }
+};
+
+app.post('/api/queue-validation', async (req, res) => {
+    const { userId, resumeUrl } = req.body;
+
+    if (!userId || !resumeUrl) {
+        return res.status(400).json({ error: 'Missing userId or resumeUrl' });
+    }
+
+    // Add to Redis Queue
+    const job = await validationQueue.add({ userId, resumeUrl });
+    console.log(`Job queued via Redis: ${job.id} for user ${userId}`);
+
+    // Immediate Response
+    res.status(200).json({
+        success: true,
+        message: 'Resume queued for validation',
+        jobId: job.id
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

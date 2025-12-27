@@ -14,6 +14,10 @@ interface RegistrationData {
   transactionId?: string;
   screenshotUrl?: string;
   resumeUrl?: string;
+  resumeStatus?: 'Pending' | 'Accepted' | 'Rejected';
+  resumeAttempts?: number;
+  resumeAIConfidence?: number;
+  resumeAIReason?: string;
   status?: 'pending' | 'verified' | 'declined' | 'pending_payment';
   paymentMode?: 'online' | 'cash' | 'cashfree_gateway' | 'cashfree_auto' | 'cashfree_synced' | 'bulk_import';
   createdAt: any;
@@ -58,6 +62,10 @@ const AdminDashboard: React.FC = () => {
                 transactionId: d.transactionId || '',
                 screenshotUrl: d.screenshotUrl || '',
                 resumeUrl: d.resumeUrl || '',
+                resumeStatus: d.resumeStatus || (d.resumeUrl ? 'Accepted' : 'Pending'),
+                resumeAttempts: d.resumeAttempts || 0,
+                resumeAIConfidence: d.resumeAIConfidence,
+                resumeAIReason: d.resumeAIReason,
                 paymentMode: d.paymentMode || 'online',
                 status: (d.status === 'verified' || d.status === 'paid') ? 'verified' : (d.status === 'declined' ? 'declined' : 'pending'),
                 createdAt: d.createdAt
@@ -165,7 +173,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   const downloadAllCSV = () => {
-    const headers = ['Name,RollNumber,Email,Phone,Year,Section,Status,PaymentMode,ResumeLink,TransactionID'];
+    const headers = ['Name,RollNumber,Email,Phone,Year,Section,Status,PaymentMode,ResumeLink,ResumeStatus,ResumeAttempts,AIConfidence,TransactionID'];
     const rows = filteredRegistrations.map(reg => [
         reg.name,
         reg.rollNumber,
@@ -176,6 +184,9 @@ const AdminDashboard: React.FC = () => {
         reg.status || 'pending',
         reg.paymentMode || '',
         reg.resumeUrl || 'Not Uploaded',
+        reg.resumeStatus || 'Pending',
+        reg.resumeAttempts || 0,
+        reg.resumeAIConfidence || 'N/A',
         reg.transactionId || ''
     ]);
 
@@ -444,7 +455,7 @@ const AdminDashboard: React.FC = () => {
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">S.No</th>
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Student Info</th>
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Year/Sec</th>
-                        <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Resume</th>
+                        <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Resume Info</th>
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase">Payment</th>
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase text-center">Actions</th>
                     </tr>
@@ -461,13 +472,26 @@ const AdminDashboard: React.FC = () => {
                                 {reg.year} <br /> <span className="text-xs font-bold text-slate-400">{reg.section}</span>
                             </td>
                             <td className="py-4 px-6 text-sm">
-                                {reg.resumeUrl ? (
-                                    <a href={reg.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 font-bold text-xs flex items-center gap-1 underline">
-                                        📄 View PDF
-                                    </a>
-                                ) : (
-                                    <span className="text-slate-400 text-xs italic">Not Uploaded</span>
-                                )}
+                                <div className="flex flex-col gap-1">
+                                    {reg.resumeUrl ? (
+                                        <a href={reg.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 font-bold text-xs flex items-center gap-1 underline mb-1">
+                                            📄 View PDF
+                                        </a>
+                                    ) : (
+                                        <span className="text-slate-400 text-xs italic mb-1">Not Uploaded</span>
+                                    )}
+                                    
+                                    <div className="flex items-center gap-2">
+                                        {reg.resumeStatus === 'Accepted' && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">AI: Valid</span>}
+                                        {reg.resumeStatus === 'Rejected' && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">AI: Rejected</span>}
+                                        <span className="text-[10px] text-slate-500" title="Upload Attempts">Attempts: {reg.resumeAttempts}</span>
+                                    </div>
+                                    {reg.resumeAIConfidence && (
+                                        <div className="text-[9px] text-slate-400" title={reg.resumeAIReason}>
+                                            Score: {(reg.resumeAIConfidence * 100).toFixed(0)}%
+                                        </div>
+                                    )}
+                                </div>
                             </td>
                             <td className="py-4 px-6">
                                 {reg.paymentMode === 'cash' ? (

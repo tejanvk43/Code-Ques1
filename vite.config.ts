@@ -10,6 +10,15 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/.netlify\/functions\/send-email/, '/api/send-approval-email')
+      },
+      '/.netlify/functions/validate-resume': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/.netlify\/functions\/validate-resume/, '/api/validate-resume')
+      },
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
       }
     }
   }
