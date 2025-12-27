@@ -39,7 +39,7 @@ const CoordinatorDashboard: React.FC = () => {
                 name,
                 rollNumber,
                 password,
-                loginUrl: 'https://694d4924329c8ee8906fc027--code-quest2025.netlify.app/login'
+                loginUrl: 'https://code-quest-1.netlify.app/login'
             })
         }).then(res => res.json())
             .then(data => {
