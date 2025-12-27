@@ -36,7 +36,8 @@ const AdminDashboard: React.FC = () => {
     // Manual Registration State
     const [showManualModal, setShowManualModal] = useState(false);
     const [manualData, setManualData] = useState({
-        name: '', rollNumber: '', email: '', phoneNumber: '', year: '2nd Year', section: ''
+        name: '', rollNumber: '', email: '', phoneNumber: '', year: '2nd Year', section: '',
+        paymentMode: 'cash', transactionId: ''
     });
 
     const sectionOptions: { [key: string]: string[] } = {
@@ -158,12 +159,53 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleDeleteAll = async () => {
+        if (!window.confirm("CRITICAL WARNING: This will delete ALL students. Are you sure?")) return;
+        if (!window.confirm("Double Check: This cannot be undone. Type 'DELETE' to confirm.")) return;
+
+        try {
+            setLoading(true);
+            const batchPromises = registrations.map(reg => deleteDoc(doc(db, 'registrations', reg.id)));
+            await Promise.all(batchPromises);
+            setRegistrations([]);
+            alert("All records deleted.");
+        } catch (error) {
+            console.error("Error deleting all:", error);
+            alert("Failed to delete all records.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendCredentials = async (student: RegistrationData) => {
+        if (!window.confirm(`Regenerate password and email credentials to ${student.name}?`)) return;
+
+        try {
+            const newPassword = Math.random().toString(36).slice(-8);
+
+            // Update Firestore
+            await updateDoc(doc(db, 'registrations', student.id), {
+                password: newPassword,
+                isFirstLogin: true
+            });
+
+            // Send Email
+            sendApprovalEmail(student.email, student.name, student.rollNumber, newPassword);
+
+            alert(`Credentials sent to ${student.email}`);
+
+        } catch (error) {
+            console.error("Error resending creds:", error);
+            alert("Failed to resend credentials.");
+        }
+    };
+
     /* -------------------------------------------------------------------------- */
     /*                            Bulk Upload Logic                               */
     /* -------------------------------------------------------------------------- */
     const downloadSampleCSV = () => {
-        const headers = ['Name,RollNumber,Email,Phone,Year,Section'];
-        const sampleRow = ['John Doe,21UR1A0501,john@example.com,9876543210,3rd Year,CSE A'];
+        const headers = ['Name,RollNumber,Email,Phone,Year,Section,PaymentMode,TransactionID'];
+        const sampleRow = ['John Doe,21UR1A0501,john@example.com,9876543210,3rd Year,CSE A,cash,'];
         const csvContent = "data:text/csv;charset=utf-8," + [headers, sampleRow].join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -233,7 +275,9 @@ const AdminDashboard: React.FC = () => {
                         continue;
                     }
 
-                    const [name, rollNumber, email, phone, year, section] = cols;
+                    const [name, rollNumber, email, phone, year, section, paymentModeRaw, transactionId] = cols;
+                    const paymentMode = (paymentModeRaw?.toLowerCase() === 'online') ? 'online' : 'cash';
+
                     const generatedPassword = Math.random().toString(36).slice(-8);
 
                     const newDoc = {
@@ -244,7 +288,8 @@ const AdminDashboard: React.FC = () => {
                         year,
                         section,
                         status: 'verified',
-                        paymentMode: 'bulk_import',
+                        paymentMode: paymentMode,
+                        transactionId: transactionId || '',
                         password: generatedPassword,
                         isFirstLogin: true,
                         createdAt: serverTimestamp()
@@ -294,7 +339,8 @@ const AdminDashboard: React.FC = () => {
                 year: manualData.year,
                 section: manualData.section,
                 status: 'verified',
-                paymentMode: 'cash',
+                paymentMode: manualData.paymentMode,
+                transactionId: manualData.transactionId,
                 password: generatedPassword,
                 isFirstLogin: true,
                 createdAt: serverTimestamp()
@@ -314,7 +360,10 @@ const AdminDashboard: React.FC = () => {
             setActiveTab('verified');
 
             setShowManualModal(false);
-            setManualData({ name: '', rollNumber: '', email: '', phoneNumber: '', year: '2nd Year', section: '' });
+            setManualData({
+                name: '', rollNumber: '', email: '', phoneNumber: '', year: '2nd Year', section: '',
+                paymentMode: 'cash', transactionId: ''
+            });
             alert("Manual Registration Added via Firebase!");
 
         } catch (error) {
@@ -343,7 +392,9 @@ const AdminDashboard: React.FC = () => {
                 email: editingStudent.email,
                 phoneNumber: editingStudent.phoneNumber,
                 year: editingStudent.year,
-                section: editingStudent.section
+                section: editingStudent.section,
+                paymentMode: editingStudent.paymentMode,
+                transactionId: editingStudent.transactionId
             };
 
             await updateDoc(doc(db, 'registrations', editingStudent.id), updates);
@@ -399,6 +450,9 @@ const AdminDashboard: React.FC = () => {
                             <span>📂</span> Bulk Upload
                             <input type="file" accept=".csv" onChange={handleBulkUpload} className="hidden" />
                         </label>
+                        <button onClick={handleDeleteAll} className="px-5 py-2.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-lg flex items-center gap-2 transition-all cursor-pointer">
+                            <span>🗑️</span> Delete All
+                        </button>
                         <button onClick={() => setShowManualModal(true)} className="px-5 py-2.5 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 shadow-lg flex items-center gap-2 transition-all cursor-pointer">
                             <span>+</span> Manual
                         </button>
@@ -468,7 +522,8 @@ const AdminDashboard: React.FC = () => {
                                     <td className="py-4 px-6 text-xs font-mono text-slate-400">{String(index + 1).padStart(2, '0')}</td>
                                     <td className="py-4 px-6">
                                         <div className="font-bold text-slate-900">{reg.name}</div>
-                                        <div className="text-xs text-slate-500 font-mono bg-slate-100 inline-block px-1 rounded mt-1">{reg.rollNumber}</div>
+                                        <div className="text-xs text-slate-500 font-mono bg-slate-100 inline-block px-1 rounded mt-1 mr-2">{reg.rollNumber}</div>
+                                        <div className="text-xs text-blue-600 font-medium mt-0.5">{reg.email}</div>
                                     </td>
                                     <td className="py-4 px-6 text-sm text-slate-600">
                                         {reg.year} <br /> <span className="text-xs font-bold text-slate-400">{reg.section}</span>
@@ -518,6 +573,9 @@ const AdminDashboard: React.FC = () => {
                                     </td>
                                     <td className="py-4 px-6 text-center">
                                         <div className="flex justify-center gap-2">
+                                            <button onClick={() => handleResendCredentials(reg)} className="p-2 text-slate-400 hover:text-yellow-600 transition-colors cursor-pointer" title="Resend Credentials">
+                                                🔄
+                                            </button>
                                             <button onClick={() => handleEditClick(reg)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer" title="Edit">
                                                 ✏️
                                             </button>
@@ -567,66 +625,93 @@ const AdminDashboard: React.FC = () => {
                                     {sectionOptions[manualData.year]?.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
-                            <div className="bg-green-50 p-4 rounded-lg text-green-800 text-sm font-bold text-center border border-green-100">
-                                💰 Admin collected Cash Payment (₹30)
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Payment Mode</label>
+                                    <select className="w-full px-4 py-2 border rounded-lg" value={manualData.paymentMode} onChange={e => setManualData({ ...manualData, paymentMode: e.target.value })}>
+                                        <option value="cash">Cash</option>
+                                        <option value="online">Online</option>
+                                    </select>
+                                </div>
+                                {manualData.paymentMode === 'online' && (
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Transaction ID</label>
+                                        <input type="text" placeholder="Txn ID" className="w-full px-4 py-2 border rounded-lg" value={manualData.transactionId} onChange={e => setManualData({ ...manualData, transactionId: e.target.value })} />
+                                    </div>
+                                )}
                             </div>
                             <button type="submit" className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 cursor-pointer">Register Student</button>
                         </form>
                     </div>
-                </div>
+                </div >
             )}
 
             {/* Edit Modal */}
-            {editingStudent && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-black text-slate-900">Edit Student</h2>
-                            <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-600 text-2xl font-bold cursor-pointer">&times;</button>
+            {
+                editingStudent && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-black text-slate-900">Edit Student</h2>
+                                <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-600 text-2xl font-bold cursor-pointer">&times;</button>
+                            </div>
+                            <form onSubmit={handleUpdateStudent} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Full Name</label>
+                                        <input required type="text" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.name} onChange={e => setEditingStudent({ ...editingStudent, name: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Roll Number</label>
+                                        <input required type="text" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.rollNumber} onChange={e => setEditingStudent({ ...editingStudent, rollNumber: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Email</label>
+                                        <input required type="email" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.email} onChange={e => setEditingStudent({ ...editingStudent, email: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Phone</label>
+                                        <input required type="tel" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.phoneNumber} onChange={e => setEditingStudent({ ...editingStudent, phoneNumber: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Year</label>
+                                        <select className="w-full px-4 py-2 border rounded-lg" value={editingStudent.year} onChange={e => setEditingStudent({ ...editingStudent, year: e.target.value })}>
+                                            <option value="2nd Year">2nd Year</option>
+                                            <option value="3rd Year">3rd Year</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Section</label>
+                                        <select className="w-full px-4 py-2 border rounded-lg" value={editingStudent.section} onChange={e => setEditingStudent({ ...editingStudent, section: e.target.value })}>
+                                            <option value="">Select Section</option>
+                                            {sectionOptions[editingStudent.year]?.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Payment Mode</label>
+                                        <select className="w-full px-4 py-2 border rounded-lg" value={editingStudent.paymentMode} onChange={e => setEditingStudent({ ...editingStudent, paymentMode: e.target.value as any })}>
+                                            <option value="cash">Cash</option>
+                                            <option value="online">Online</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Transaction ID</label>
+                                        <input type="text" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.transactionId || ''} onChange={e => setEditingStudent({ ...editingStudent, transactionId: e.target.value })} />
+                                    </div>
+                                </div>
+                                <button type="submit" className="w-full py-3 bg-blue-900 text-white font-bold rounded-xl hover:bg-blue-800 cursor-pointer">Update Student</button>
+                            </form>
                         </div>
-                        <form onSubmit={handleUpdateStudent} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Full Name</label>
-                                    <input required type="text" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.name} onChange={e => setEditingStudent({ ...editingStudent, name: e.target.value })} />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Roll Number</label>
-                                    <input required type="text" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.rollNumber} onChange={e => setEditingStudent({ ...editingStudent, rollNumber: e.target.value })} />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Email</label>
-                                    <input required type="email" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.email} onChange={e => setEditingStudent({ ...editingStudent, email: e.target.value })} />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Phone</label>
-                                    <input required type="tel" className="w-full px-4 py-2 border rounded-lg" value={editingStudent.phoneNumber} onChange={e => setEditingStudent({ ...editingStudent, phoneNumber: e.target.value })} />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Year</label>
-                                    <select className="w-full px-4 py-2 border rounded-lg" value={editingStudent.year} onChange={e => setEditingStudent({ ...editingStudent, year: e.target.value })}>
-                                        <option value="2nd Year">2nd Year</option>
-                                        <option value="3rd Year">3rd Year</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Section</label>
-                                    <select className="w-full px-4 py-2 border rounded-lg" value={editingStudent.section} onChange={e => setEditingStudent({ ...editingStudent, section: e.target.value })}>
-                                        <option value="">Select Section</option>
-                                        {sectionOptions[editingStudent.year]?.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <button type="submit" className="w-full py-3 bg-blue-900 text-white font-bold rounded-xl hover:bg-blue-800 cursor-pointer">Update Student</button>
-                        </form>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 
