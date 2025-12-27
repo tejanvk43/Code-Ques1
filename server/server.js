@@ -180,8 +180,8 @@ const processJob = async (job) => {
     1. A Resume/CV MUST contain: Contact Information, Education, and Skills/Experience.
     2. Reject random text, code snippets, or unrelated documents.
     3. If it is a Resume, output rigid JSON: 
-       { "valid": true, "score": 8, "confidence": 0.95, "reason": "Good structure, but lacks specific impact metrics." }
-    4. "score" should be an integer from 0 to 10 based on quality, completeness, and professionalism.
+       { "valid": true, "score": 16, "confidence": 0.95, "reason": "Good structure, but lacks specific impact metrics." }
+    4. "score" should be an integer from 0 to 20 based on quality, completeness, and professionalism.
     5. If NOT a Resume, output rigid JSON: 
        { "valid": false, "score": 0, "confidence": 0.9, "reason": "Text appears to be random." }
     6. Do NOT output markdown. Output ONLY JSON.
@@ -190,8 +190,10 @@ const processJob = async (job) => {
     """${text.substring(0, 3000)}"""
     `;
 
+    const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434/api/generate';
+
     try {
-        const response = await fetch('http://localhost:8080/api/generate', {
+        const response = await fetch(OLLAMA_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
